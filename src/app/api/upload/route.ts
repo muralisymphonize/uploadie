@@ -24,36 +24,33 @@ export async function POST(req: NextRequest) {
     await ensureUploadDir();
 
     const formData = await req.formData();
-    const files = formData.getAll("files") as File[];
+    const file = formData.get("file") as File;
 
-    if (!files || files.length === 0) {
+    if (!file) {
       return NextResponse.json(
-        { message: "No files provided." },
+        { message: "No file provided." },
         { status: 400 }
       );
     }
 
-    const uploadedFiles: string[] = [];
+    // Create buffer from file data
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
 
-    // Process each file and store in the upload directory
-    for (const file of files) {
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
+    // Define file path to save
+    const filePath = path.join(uploadDir, file.name);
 
-      const filePath = path.join(uploadDir, file.name);
-      await writeFile(filePath, buffer);
-
-      uploadedFiles.push(file.name);
-    }
+    // Write file to local directory
+    await writeFile(filePath, buffer);
 
     return NextResponse.json(
-      { message: "Files uploaded successfully.", files: uploadedFiles },
+      { message: "File uploaded successfully.", fileName: file.name },
       { status: 200 }
     );
   } catch (error) {
-    console.error("Error uploading files:", error);
+    console.error("Error uploading file:", error);
     return NextResponse.json(
-      { message: "Error uploading files." },
+      { message: "Error uploading file." },
       { status: 500 }
     );
   }
